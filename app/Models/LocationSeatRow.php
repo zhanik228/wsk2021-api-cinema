@@ -11,13 +11,9 @@ class LocationSeatRow extends Model
 
     protected $appends = ['unavailable'];
 
-    public function locationSeats() {
-        return $this->hasMany(LocationSeat::class);
-    }
-
     public function getUnavailableAttribute() {
         $arr_numbers = [];
-        $this->unavailableSeats->filter(function($seat, $index) use(&$arr_numbers) {
+        $this->seats->filter(function($seat, $index) use(&$arr_numbers) {
             if ($seat->reservation_id || $seat->ticket_id) {
                 $arr_numbers[] = $seat->number;
             }
@@ -27,7 +23,12 @@ class LocationSeatRow extends Model
         return $arr_numbers;
     }
 
-    public function unavailableSeats() {
+    public function seats() {
         return $this->hasMany(LocationSeat::class);
     }
+
+    public function show() {
+        return $this->belongsTo(Show::class);
+    }
+
 }

@@ -9,7 +9,7 @@ class Show extends Model
 {
     use HasFactory;
 
-    // public function locationSeatRow() {
-    //     return $this->hasOne(LocationSeatRow::class, 'show_id', 'id');
-    // }
+    public function locationSeatRow() {
+        return $this->belongsTo(LocationSeatRow::class, 'show_id');
+    }
 }

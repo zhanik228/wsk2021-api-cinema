@@ -31,38 +31,98 @@ class ShowController extends Controller
             ], 404);
         }
 
-        $showQuery = Show::
-        select(
-            '*',
-            DB::raw('COUNT(location_seats.id) AS total')
+        // $showQuery = Show::select(
+        //     '*',
+        //     DB::raw('COUNT(l_seats.id) AS total')
+        // )
+        // ->leftJoin(
+        //     'location_seat_rows AS l_row',
+        //     'l_row.show_id',
+        //     'shows.id'
+        // )
+        // ->leftJoin(
+        //     'location_seats AS l_seats',
+        //     'l_seats.location_seat_row_id',
+        //     'l_row.id'
+        // )
+        // ->where('shows.id', $showId)
+        // ->where('shows.concert_id', $concertId)
+        // ->groupBy('l_row.id')
+        // ->get()
+        // ->map(function($show) {
+        //     return [
+        //         'id' => $show->location_seat_row_id,
+        //         'name' => $show->name,
+        //         'seats' => [
+        //             'seats' => $show->total,
+        //             'unavailable' => $show->locationSeatRow ? $show->locationSeatRow->unavailable : []
+        //         ]
+        //     ];
+        // });
+
+        $showQuery = LocationSeatRow
+        ::with(
+            'show',
+            'seats'
         )
-        ->leftJoin(
-            'location_seat_rows',
-            'location_seat_rows.show_id',
-            'shows.id'
-        )
-        ->leftJoin(
-            'location_seats',
-            'location_seats.location_seat_row_id',
-            'location_seat_rows.id'
-        )
-        ->where('shows.id', $showId)
-        ->where('shows.concert_id', $concertId)
-        ->orderBy('location_seat_rows.order', 'asc')
-        ->orderBy('location_seats.number', 'asc')
-        ->groupBy('location_seat_rows.id')
-        ->get();
+        ->whereHas('show', function($query) use ($showId, $concertId) {
+            $query
+            ->where('id', $showId)
+            ->where('concert_id', $concertId);
+        })
+        ->get()
+        ->map(function($row) {
+            return [
+                'id' => $row->id,
+                'name' => $row->name,
+                'seats' => [
+                    'total' => $row->seats->count(),
+                    'unavailable' => $row->unavailable
+                ]
+            ];
+        });
+
+        // $showQuery = Show::with(             
+        //     'locationSeatRow',
+        //     'locationSeatRow.locationSeats'
+        // )
+        // ->where('shows.id', $showId)
+        // ->where('shows.concert_id', $concertId)
+        // ->get()
+        // ->map(function($show, $locationSeatRowId) {
+        //     return [
+        //         'id' => $show->locationSeatRow->id,
+        //         'name' => $show->locationSeatRow->name,
+        //         'seats' => [
+        //             'total' => $show->locationSeatRow->count(),
+        //             'unavailable' => $show->locationSeatRow->unavailable
+        //         ]
+        //     ];
+        // });
+
+        return $showQuery;
+        // ->leftJoin(
+        //     'location_seats',
+        //     'location_seats.location_seat_row_id',
+        //     'location_seat_rows.id'
+        // )
+        // ->where('shows.id', $showId)
+        // ->where('shows.concert_id', $concertId)
+        // ->orderBy('location_seat_rows.order', 'asc')
+        // ->orderBy('location_seats.number', 'asc')
+        // ->groupBy('location_seat_rows.id')
+        // ->get();
 
         return ['rows' => $showQuery->map(function($row) {
                 return [
-                    'id' => $row->id,
+                    'id' => $row->location_seat_row_id,
                     'name' => $row->name,
                     'seats' => [
                         'total' => $row->total,
-                        'unavailable' => $row->locationSeatRow->unavailable
+                        'unavailable' => $row->locationSeatRow
                     ]
                 ];
-            })];
+        })];
     }
 
     public function reservation(Request $request, $concertid, $showId) {
